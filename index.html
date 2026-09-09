@@ -83,11 +83,17 @@
     th { background-color: #0f131c; color: var(--accent-blue); border-bottom: 2px solid var(--border-dark); padding: 12px; font-weight: bold; }
     td { padding: 12px; border-bottom: 1px solid var(--border-dark); font-size: 14px; }
     
-    .group-header { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-cyan); font-weight: bold; cursor: pointer;}
+    .group-header { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-cyan); font-weight: bold; cursor: pointer; transition: 0.2s;}
     .group-header:hover { background-color: rgba(59, 130, 246, 0.2); }
     .group-header td { border-top: 2px solid var(--accent-blue); padding: 15px 12px; font-size: 16px;}
     
-    .child-row { background-color: var(--panel-bg); transition: 0.2s; }
+    /* TOGGLE ICON STYLES */
+    .toggle-icon { transition: transform 0.3s ease; margin-right: 10px; color: var(--accent-cyan); font-size: 14px; }
+    .group-header.active .toggle-icon { transform: rotate(180deg); color: var(--accent-pink); }
+    
+    /* HIDE CHILD ROWS BY DEFAULT */
+    .child-row { background-color: var(--panel-bg); transition: 0.2s; display: none; }
+    .child-row.expanded { display: table-row; }
     .child-row:hover { background-color: var(--row-hover); }
 
     .text-right { text-align: right; }
@@ -130,13 +136,15 @@
 
     @media print {
       body { background-color: #fff; color: #000; }
-      .no-print, .chart-container, .btn-close, .modal-overlay { display: none !important; }
+      .no-print, .chart-container, .btn-close, .modal-overlay, .toggle-icon, .toggle-hint { display: none !important; }
       .card, .summary-card { border: none; box-shadow: none; padding: 0; background: transparent;}
       table { margin-top: 20px; }
       th { background-color: #f2f2f2 !important; color: #000; border: 1px solid #000; }
       td { border: 1px solid #999; color: #000 !important; }
       .group-header td { background-color: #e6e6e6 !important; border-top: 2px solid #000; color: #000 !important;}
       .badge-wip { background: #000; color: #fff; }
+      /* บังคับโชว์ทุกบรรทัดเวลาปริ้นต์ */
+      .child-row { display: table-row !important; }
     }
   </style>
 </head>
@@ -188,7 +196,7 @@
     </div>
 
     <div class="card">
-      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (แยกรายออเดอร์)</h2>
+      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (คลิกเพื่อขยายดูรายละเอียด)</h2>
       <table id="wipTable">
         <thead>
           <tr>
@@ -269,6 +277,17 @@
   function closeManual() { document.getElementById('manualModal').style.display = 'none'; }
   function closeManualOnOutside(event) {
     if (event.target === document.getElementById('manualModal')) closeManual();
+  }
+
+  // ฟังก์ชันสลับการซ่อน/แสดงรายละเอียดตาราง
+  function toggleGroup(groupId) {
+    const header = document.getElementById('header-' + groupId);
+    header.classList.toggle('active');
+    
+    const rows = document.querySelectorAll('.' + groupId);
+    rows.forEach(row => {
+      row.classList.toggle('expanded');
+    });
   }
 
   // -------------------------------------------------------------
@@ -446,7 +465,11 @@
     if (stepArray.length === 0) {
       tableHtml = `<tr><td colspan="5" class="text-center" style="padding: 40px; color: var(--accent-cyan); font-size: 14px;">ยอดเยี่ยม! ขณะนี้ไม่มีงานกองรอหน้าสเตชันเลย (เคลียร์งานหมดแล้ว)</td></tr>`;
     } else {
+      let groupIndex = 0; // ลำดับกลุ่มสำหรับผูก ID
       stepArray.forEach(step => {
+        groupIndex++;
+        let groupId = "group-" + groupIndex;
+        
         totalFactoryWip += step.totalWip;
         
         if (step.totalWip > maxWip) {
@@ -457,18 +480,25 @@
         chartLabels.push(step.name);
         chartData.push(step.totalWip);
 
+        // แถวหัวข้อแผนก เพิ่มลูกศรและฟังก์ชัน toggleGroup
         tableHtml += `
-          <tr class="group-header">
-            <td colspan="3"><i class="fa-solid fa-door-open" style="margin-right:8px;"></i> จุดทำงาน: <b>${step.name}</b></td>
+          <tr class="group-header" id="header-${groupId}" onclick="toggleGroup('${groupId}')">
+            <td colspan="3">
+              <i class="fa-solid fa-chevron-down toggle-icon"></i>
+              <i class="fa-solid fa-door-open" style="margin-right:8px;"></i> จุดทำงาน: <b>${step.name}</b>
+            </td>
             <td class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
-            <td class="no-print"></td>
+            <td class="text-center no-print">
+              <span class="toggle-hint" style="font-size: 12px; color: var(--text-muted); font-weight: normal;"><i class="fa-solid fa-hand-pointer"></i> คลิกดู</span>
+            </td>
           </tr>
         `;
 
         step.orderDetails.sort((a, b) => b.wip - a.wip); 
         step.orderDetails.forEach(o => {
+          // เพิ่ม class ของกลุ่ม เพื่อผูกการซ่อน/แสดง เข้ากับหัวข้อ
           tableHtml += `
-            <tr class="child-row">
+            <tr class="child-row ${groupId}">
               <td style="padding-left: 30px; font-size: 14px;">
                 <span style="color: #d1dbe8; font-weight: bold;">${o.order_no}</span>
                 <span style="color: var(--accent-purple); margin-left: 10px;">[ ${o.work_code} ]</span>
@@ -567,6 +597,9 @@
   }
 
   async function closeOrder(idOrder, orderNo) {
+    // ป้องกัน Event Clicking ไปทำงานที่ Header
+    window.event.stopPropagation();
+    
     const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
     
     if (confirmClose) {
