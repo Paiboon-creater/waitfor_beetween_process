@@ -102,15 +102,6 @@
     /* ALERT BADGE */
     .badge-wip { background: var(--accent-pink); color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;}
     
-    /* CLOSE BUTTON */
-    .btn-close {
-      background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green);
-      padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: 0.2s; font-family: inherit; font-weight: bold;
-    }
-    .btn-close:hover {
-      background: var(--accent-green); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-    }
-
     /* MODAL MANUAL STYLES */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -136,7 +127,7 @@
 
     @media print {
       body { background-color: #fff; color: #000; }
-      .no-print, .chart-container, .btn-close, .modal-overlay, .toggle-icon, .toggle-hint { display: none !important; }
+      .no-print, .chart-container, .modal-overlay, .toggle-icon, .toggle-hint { display: none !important; }
       .card, .summary-card { border: none; box-shadow: none; padding: 0; background: transparent;}
       table { margin-top: 20px; }
       th { background-color: #f2f2f2 !important; color: #000; border: 1px solid #000; }
@@ -257,8 +248,8 @@
       <h2>🛠️ 4. การจัดการใบสั่งงาน (ปุ่ม ปิดใบสั่ง)</h2>
       <p>ในกรณีที่งานผลิตเสร็จสิ้นไปแล้ว แต่ยอดในระบบอาจมีการคีย์ผิดพลาด ระบบจะยังโชว์ยอดค้างอยู่</p>
       <ul>
-        <li>ผู้ดูแลสามารถกดปุ่ม <strong style="color: var(--accent-green);"><i class="fa-solid fa-check-double"></i> ปิดใบสั่ง</strong> ที่ด้านขวาสุดของตาราง</li>
-        <li>ใบสั่งงานนั้นจะ <strong>หายไปจากกระดาน WIP นี้ทันที</strong> และจะไม่ถูกนำมาคำนวณยอดค้างอีก</li>
+        <li>ผู้ดูแลสามารถคลิก <strong>ติ๊กช่องสี่เหลี่ยม</strong> (Checkbox) เพื่อปิดใบสั่ง</li>
+        <li>เมื่อกดยืนยัน ใบสั่งงานนั้นจะ <strong>หายไปจากกระดาน WIP นี้ทันที</strong> และจะไม่ถูกนำมาคำนวณยอดค้างอีก</li>
       </ul>
       
     </div>
@@ -297,14 +288,13 @@
     if (!stepName) return "ไม่ระบุ";
     const name = stepName.trim();
     
-    // ใช้ includes() เพื่อให้ครอบคลุมคำต่อท้ายทุกรูปแบบ 
     if (name.includes("เจาะซี่")) return "เจาะซี่";
     if (name.includes("รีดใบ")) return "รีดใบ";
     if (name.includes("ตัดใบ")) return "ตัดใบ";
     if (name.includes("ตีตรา")) return "ตีตรา";
     if (name.includes("ตีลาย")) return "ตีลาย";
     
-    return name; // ถ้าไม่เข้าเงื่อนไข ให้ใช้ชื่อแผนกเดิม
+    return name;
   }
 
   window.onload = function() {
@@ -340,13 +330,11 @@
       const targetToStep = {};
       targets.forEach(t => targetToStep[t.id_target] = t.id_step);
 
-      // 1. สร้าง Map สำหรับแปลง id_step เป็นชื่อกลุ่ม (Group Name)
       const stepToGroup = {};
       stepsMaster.forEach(s => {
           stepToGroup[s.id_step] = getGroupName(s.step_name);
       });
 
-      // 2. รวบยอดจำนวนผลิตที่ทำเสร็จเข้าสู่ Group Name
       const prodGroupMap = {};
       productions.forEach(p => {
         let stepId = targetToStep[p.id_target];
@@ -360,27 +348,23 @@
         prodGroupMap[p.id_order][gName] += parseInt(p.produced_amount || 0);
       });
 
-      // 3. เตรียมตาราง WIP โดยยึดตาม Group Name
       const wipByGroup = {};
       const uniqueGroups = [...new Set(Object.values(stepToGroup))];
       uniqueGroups.forEach(gName => {
         wipByGroup[gName] = { name: gName, totalWip: 0, orderDetails: [] };
       });
 
-      // 4. คำนวณ Routing ของแต่ละออเดอร์
       activeOrders.forEach(order => {
         let qty = parseInt(order.quantity || 0);
         let workCode = workMap[order.id_work] || 'ไม่มีระบุรหัสชิ้นงาน';
         
         let routing = orderSteps.filter(os => String(os.id_order) === String(order.id_order));
         
-        // แปลงแผนงาน (Routing) ให้เป็นแบบ Group Name
         let groupedRoutingMap = {};
         routing.forEach(r => {
             let gName = stepToGroup[r.id_step];
             if (!gName) return;
             
-            // หากในแผนมีการวางแผนทั้งแบบมือและออโต้ ให้ยุบเหลือตัวเดียว และยึดวันที่เริ่มงานแรกสุด
             if (!groupedRoutingMap[gName]) {
                  groupedRoutingMap[gName] = { groupName: gName, start_date: r.start_date, id_001: r.id_001 };
             } else {
@@ -401,11 +385,9 @@
 
         let groupedRouting = Object.values(groupedRoutingMap);
 
-        // เรียงลำดับแผนงานหลังจากจัดกลุ่มแล้ว
         groupedRouting.sort((a, b) => {
             let dateA = a.start_date ? new Date(a.start_date).getTime() : 9999999999999;
             let dateB = b.start_date ? new Date(b.start_date).getTime() : 9999999999999;
-            
             if (dateA !== dateB) return dateA - dateB;
             
             let seqA = parseFloat(a.id_001) || 999;
@@ -416,9 +398,28 @@
         let currentInputAmount = qty;
         let previousStepName = "ยอดสั่งผลิต";
 
-        // คำนวณยอดงานรอ (WIP)
         groupedRouting.forEach(r => {
           let gName = r.groupName;
+          
+          // ตรวจสอบเงื่อนไขการ Custom Routing ตามที่กำหนด
+          if (gName.includes("ตัดเหรียญออโต")) {
+              currentInputAmount = qty;
+              previousStepName = "ยอดสั่งผลิต";
+          } else if (gName.includes("ขึ้นรูปออโต")) {
+              // รับงานจาก ตัดเหรียญออโต (ดึงข้อมูลว่าออเดอร์นี้ทำตัดเหรียญออโตไปเท่าไหร่)
+              let producedAutoCoin = 0;
+              if (prodGroupMap[order.id_order]) {
+                  for (let key in prodGroupMap[order.id_order]) {
+                      if (key.includes("ตัดเหรียญออโต")) {
+                          producedAutoCoin = prodGroupMap[order.id_order][key];
+                          break;
+                      }
+                  }
+              }
+              currentInputAmount = producedAutoCoin;
+              previousStepName = "ตัดเหรียญออโต";
+          }
+          
           let producedAmount = (prodGroupMap[order.id_order] && prodGroupMap[order.id_order][gName]) ? prodGroupMap[order.id_order][gName] : 0;
           
           let wip = currentInputAmount - producedAmount;
@@ -483,7 +484,6 @@
         chartLabels.push(step.name);
         chartData.push(step.totalWip);
 
-        // อัปเดต colspan เพื่อป้องกันข้อความยอดรวมซ้อนกันหรือล้น
         tableHtml += `
           <tr class="group-header" id="header-${groupId}" onclick="toggleGroup('${groupId}')">
             <td colspan="2">
@@ -511,10 +511,12 @@
               </td>
               <td class="text-right" style="color: var(--accent-blue); font-size: 14px; font-weight: bold;">${o.produced.toLocaleString()}</td>
               <td class="text-right" style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">${o.wip.toLocaleString()}</td>
-              <td class="text-center no-print">
-                <button class="btn-close" onclick="closeOrder(${o.id_order}, '${o.order_no}')">
-                  <i class="fa-solid fa-check-double"></i> ปิดใบสั่ง
-                </button>
+              <td class="text-center no-print" onclick="window.event.stopPropagation();">
+                <!-- Checkbox สำหรับติ๊กปิดใบสั่ง -->
+                <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-pink); font-weight: bold; font-size: 13px;">
+                  <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="closeOrderWithCheckbox(this, ${o.id_order}, '${o.order_no}')">
+                  ปิดใบสั่ง
+                </label>
               </td>
             </tr>
           `;
@@ -598,34 +600,40 @@
     });
   }
 
-  async function closeOrder(idOrder, orderNo) {
-    // ป้องกัน Event Clicking ไปทำงานที่ Header
-    window.event.stopPropagation();
-    
-    const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
-    
-    if (confirmClose) {
-      try {
-        const response = await fetch(`${SUPABASE_URL}/orders?id_order=eq.${idOrder}`, {
-          method: 'PATCH',
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": "Bearer " + SUPABASE_KEY,
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-          },
-          body: JSON.stringify({ is_closed: true })
-        });
+  // ฟังก์ชันติ๊กถูกผ่าน Checkbox เพื่อซ่อนออเดอร์
+  async function closeOrderWithCheckbox(checkbox, idOrder, orderNo) {
+    if (checkbox.checked) {
+      const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
+      
+      if (confirmClose) {
+        checkbox.disabled = true; // ล็อคเพื่อกันกดรัวๆ
+        try {
+          const response = await fetch(`${SUPABASE_URL}/orders?id_order=eq.${idOrder}`, {
+            method: 'PATCH',
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": "Bearer " + SUPABASE_KEY,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ is_closed: true })
+          });
 
-        if (!response.ok) {
-          throw new Error("อัปเดตข้อมูลในระบบล้มเหลว");
+          if (!response.ok) {
+            throw new Error("อัปเดตข้อมูลในระบบล้มเหลว");
+          }
+
+          // รีเฟรชตารางหลังปิดเสร็จ
+          analyzeRoutingAndWIP();
+
+        } catch (error) {
+          alert("เกิดข้อผิดพลาด: " + error.message);
+          checkbox.checked = false;
+          checkbox.disabled = false;
         }
-
-        alert(`ปิดใบสั่งงาน ${orderNo} เรียบร้อยแล้ว!`);
-        analyzeRoutingAndWIP();
-
-      } catch (error) {
-        alert("เกิดข้อผิดพลาด: " + error.message);
+      } else {
+        // หากกดยกเลิกในกล่องข้อความ ให้เอาติ๊กถูกออก
+        checkbox.checked = false;
       }
     }
   }
