@@ -196,7 +196,7 @@
     </div>
 
     <div class="card">
-      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (คลิกเพื่อขยายดูรายละเอียด)</h2>
+      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (คลิกที่ชื่อแผนกเพื่อขยายดูรายละเอียด)</h2>
       <table id="wipTable">
         <thead>
           <tr>
@@ -230,11 +230,11 @@
       <h2>📌 1. หลักการเรียงลำดับและการจัดกลุ่ม (Routing & Grouping)</h2>
       <p>ชิ้นงานแต่ละรหัสมีขั้นตอนและสายการผลิตที่ไม่เหมือนกัน ระบบนี้ถูกออกแบบให้วิเคราะห์เส้นทางแบบไดนามิก โดยจะจัดเรียงตามวันที่เริ่มงาน (Start Date) <strong>และระบบจะทำการยุบรวมขั้นตอนที่ทำงานแทนกันได้ให้อัตโนมัติ</strong> เพื่อให้ดูยอดรวมง่ายขึ้น ดังนี้:</p>
       <ul>
-        <li><strong>เจาะซี่</strong> หรือ <strong>เจาะซี่ฟีดเดอร์</strong> -> ยุบรวมเป็น <strong>เจาะซี่</strong></li>
-        <li><strong>รีดใบมือ</strong> หรือ <strong>รีดใบออโต</strong> -> ยุบรวมเป็น <strong>รีดใบ</strong></li>
-        <li><strong>ตัดใบมือ</strong> หรือ <strong>ตัดใบฟีดเดอร์</strong> -> ยุบรวมเป็น <strong>ตัดใบ</strong></li>
-        <li><strong>ตีตรา</strong> หรือ <strong>ตีตราฟีดเดอร์</strong> -> ยุบรวมเป็น <strong>ตีตรา</strong></li>
-        <li><strong>ตีลาย</strong> หรือ <strong>ตีลาย_robot</strong> -> ยุบรวมเป็น <strong>ตีลาย</strong></li>
+        <li>มีคำว่า <strong>เจาะซี่</strong> ในชื่อ -> ยุบรวมเป็น <strong>เจาะซี่</strong></li>
+        <li>มีคำว่า <strong>รีดใบ</strong> ในชื่อ -> ยุบรวมเป็น <strong>รีดใบ</strong></li>
+        <li>มีคำว่า <strong>ตัดใบ</strong> ในชื่อ -> ยุบรวมเป็น <strong>ตัดใบ</strong></li>
+        <li>มีคำว่า <strong>ตีตรา</strong> ในชื่อ -> ยุบรวมเป็น <strong>ตีตรา</strong></li>
+        <li>มีคำว่า <strong>ตีลาย</strong> ในชื่อ -> ยุบรวมเป็น <strong>ตีลาย</strong> (ครอบคลุมทั้ง ตีลายมือ, ตีลายโรบอต ฯลฯ)</li>
       </ul>
 
       <h2>🧮 2. วิธีการคำนวณ "ยอดกองรอ" (WIP)</h2>
@@ -291,16 +291,19 @@
   }
 
   // -------------------------------------------------------------
-  // ฟังก์ชันจัดกลุ่มชื่อแผนกที่ทำงานแทนกันได้
+  // ฟังก์ชันจัดกลุ่มชื่อแผนกที่ทำงานแทนกันได้ (แบบค้นหาคำ)
   // -------------------------------------------------------------
   function getGroupName(stepName) {
     if (!stepName) return "ไม่ระบุ";
     const name = stepName.trim();
-    if (name === "เจาะซี่" || name === "เจาะซี่ฟีดเดอร์") return "เจาะซี่";
-    if (name === "รีดใบมือ" || name === "รีดใบออโต") return "รีดใบ";
-    if (name === "ตัดใบมือ" || name === "ตัดใบฟีดเดอร์") return "ตัดใบ";
-    if (name === "ตีตรา" || name === "ตีตราฟีดเดอร์") return "ตีตรา";
-    if (name === "ตีลาย" || name === "ตีลาย_robot") return "ตีลาย";
+    
+    // ใช้ includes() เพื่อให้ครอบคลุมคำต่อท้ายทุกรูปแบบ 
+    if (name.includes("เจาะซี่")) return "เจาะซี่";
+    if (name.includes("รีดใบ")) return "รีดใบ";
+    if (name.includes("ตัดใบ")) return "ตัดใบ";
+    if (name.includes("ตีตรา")) return "ตีตรา";
+    if (name.includes("ตีลาย")) return "ตีลาย";
+    
     return name; // ถ้าไม่เข้าเงื่อนไข ให้ใช้ชื่อแผนกเดิม
   }
 
@@ -465,7 +468,7 @@
     if (stepArray.length === 0) {
       tableHtml = `<tr><td colspan="5" class="text-center" style="padding: 40px; color: var(--accent-cyan); font-size: 14px;">ยอดเยี่ยม! ขณะนี้ไม่มีงานกองรอหน้าสเตชันเลย (เคลียร์งานหมดแล้ว)</td></tr>`;
     } else {
-      let groupIndex = 0; // ลำดับกลุ่มสำหรับผูก ID
+      let groupIndex = 0; 
       stepArray.forEach(step => {
         groupIndex++;
         let groupId = "group-" + groupIndex;
@@ -480,14 +483,14 @@
         chartLabels.push(step.name);
         chartData.push(step.totalWip);
 
-        // แถวหัวข้อแผนก เพิ่มลูกศรและฟังก์ชัน toggleGroup
+        // อัปเดต colspan เพื่อป้องกันข้อความยอดรวมซ้อนกันหรือล้น
         tableHtml += `
           <tr class="group-header" id="header-${groupId}" onclick="toggleGroup('${groupId}')">
-            <td colspan="3">
+            <td colspan="2">
               <i class="fa-solid fa-chevron-down toggle-icon"></i>
               <i class="fa-solid fa-door-open" style="margin-right:8px;"></i> จุดทำงาน: <b>${step.name}</b>
             </td>
-            <td class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
+            <td colspan="2" class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
             <td class="text-center no-print">
               <span class="toggle-hint" style="font-size: 12px; color: var(--text-muted); font-weight: normal;"><i class="fa-solid fa-hand-pointer"></i> คลิกดู</span>
             </td>
@@ -496,7 +499,6 @@
 
         step.orderDetails.sort((a, b) => b.wip - a.wip); 
         step.orderDetails.forEach(o => {
-          // เพิ่ม class ของกลุ่ม เพื่อผูกการซ่อน/แสดง เข้ากับหัวข้อ
           tableHtml += `
             <tr class="child-row ${groupId}">
               <td style="padding-left: 30px; font-size: 14px;">
