@@ -48,6 +48,10 @@
     }
     .btn-home { color: var(--accent-cyan); border-color: var(--accent-cyan); }
     .btn-home:hover { background: var(--accent-cyan); color: #000; box-shadow: 0 0 10px rgba(6, 182, 212, 0.4); }
+    
+    .btn-manual { color: var(--accent-purple); border-color: var(--accent-purple); }
+    .btn-manual:hover { background: var(--accent-purple); color: #fff; box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
+
     .btn-print { color: #f8fafc; border-color: #f8fafc; }
     .btn-print:hover { background: #f8fafc; color: #000; }
 
@@ -101,9 +105,32 @@
       background: var(--accent-green); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
     }
 
+    /* MODAL MANUAL STYLES */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+      padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: var(--panel-bg); color: var(--text-main); width: 100%; max-width: 800px; max-height: 85vh;
+      border-radius: 10px; overflow-y: auto; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      position: relative; border: 1px solid var(--border-dark); font-family: 'Sarabun', sans-serif;
+    }
+    .modal-close {
+      position: absolute; top: 20px; right: 20px; background: transparent; border: none;
+      font-size: 28px; cursor: pointer; color: var(--text-muted); transition: 0.2s;
+    }
+    .modal-close:hover { color: var(--accent-pink); transform: scale(1.1); }
+    
+    .manual-body h2 { color: var(--accent-cyan); border-bottom: 1px dashed var(--border-dark); padding-bottom: 5px; margin-top: 30px; font-size: 18px; }
+    .manual-body p, .manual-body li { font-size: 15px; color: #CBD5E1; line-height: 1.6; }
+    .manual-body ul { padding-left: 20px; }
+    .manual-body li { margin-bottom: 8px; }
+    .note-box { background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 4px; margin: 20px 0; }
+
     @media print {
       body { background-color: #fff; color: #000; }
-      .no-print, .chart-container, .btn-close { display: none !important; }
+      .no-print, .chart-container, .btn-close, .modal-overlay { display: none !important; }
       .card, .summary-card { border: none; box-shadow: none; padding: 0; background: transparent;}
       table { margin-top: 20px; }
       th { background-color: #f2f2f2 !important; color: #000; border: 1px solid #000; }
@@ -123,7 +150,12 @@
       <div class="app-subtitle">กระดานสรุปยอดงานค้างหน้าสเตชัน (แยกตามขั้นตอนการผลิต)</div>
     </div>
     <div class="no-print" style="display:flex; gap:10px;">
-      <a href="index.html" class="btn btn-home" title="กลับหน้าแรก"><i class="fa-solid fa-house"></i> HOME</a>
+      <!-- อัปเดตลิงก์ปุ่ม Home ตามที่ต้องการ -->
+      <a href="https://paiboon-creater.github.io/Data_Information_Jaguar_productions/" class="btn btn-home" title="กลับหน้าแรก"><i class="fa-solid fa-house"></i> HOME</a>
+      
+      <!-- เพิ่มปุ่ม Manual -->
+      <button class="btn btn-manual" onclick="openManual()" title="คู่มือการใช้งาน"><i class="fa-solid fa-book"></i> MANUAL</button>
+      
       <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> PRINT</button>
     </div>
   </div>
@@ -183,12 +215,75 @@
 
 </div>
 
+<!-- ================= หน้าต่างคู่มือการอ่านฟอร์ม (Manual Modal) ================= -->
+<div class="modal-overlay no-print" id="manualModal" onclick="closeManualOnOutside(event)">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeManual()" title="ปิดหน้าต่าง">&times;</button>
+    <div class="manual-body">
+      
+      <div style="display: flex; align-items: center; border-bottom: 2px solid var(--border-dark); padding-bottom: 15px; margin-bottom: 20px;">
+        <h2 style="margin:0; border:none; padding:0; color:var(--accent-purple); font-size: 22px;"><i class="fa-solid fa-book-open"></i> คู่มือการอ่านกระดาน WIP & BACKLOG</h2>
+      </div>
+
+      <p style="color: var(--text-main);">กระดานนี้ใช้สำหรับติดตาม <strong>"ยอดงานค้างหน้าสเตชัน" (WIP)</strong> เพื่อค้นหาจุดที่เป็นคอขวด (Bottleneck) ของโรงงาน ว่ามีงานไปกระจุกตัวรอทำอยู่ที่แผนกไหนมากที่สุด</p>
+
+      <h2>📌 1. หลักการเรียงลำดับการไหลของงาน (Routing)</h2>
+      <p>ชิ้นงานแต่ละรหัสมีขั้นตอนและสายการผลิตที่ <strong>ไม่เหมือนกัน</strong> บางงานต้องผ่าน 3 ขั้นตอน บางงานผ่าน 6 ขั้นตอน ระบบนี้ถูกออกแบบให้วิเคราะห์เส้นทางแบบไดนามิก โดยจะ:</p>
+      <ul>
+        <li>ดึงแผนการผลิตของแต่ละ "ใบสั่งงาน" มาวิเคราะห์</li>
+        <li>เรียงลำดับขั้นตอนก่อน-หลัง โดยยึดจาก <strong>วันที่เริ่มงาน (Start Date)</strong> เป็นหลัก</li>
+        <li>หากมีการตั้งวันที่เริ่มงานพร้อมกัน ระบบจะดูจากคอลัมน์ลำดับ <code>id_001</code> เพื่อจัดเรียงให้ถูกต้อง</li>
+      </ul>
+
+      <h2>🧮 2. วิธีการคำนวณ "ยอดกองรอ" (WIP)</h2>
+      <div class="note-box">
+        <strong>สูตรคำนวณ:</strong> <br>
+        <span style="color: #fff;">ยอดงานกองรอ = ยอดรับจากขั้นก่อนหน้า - ยอดที่ทำเสร็จในแผนกปัจจุบัน</span>
+      </div>
+      <p><strong>เพื่อให้เห็นภาพชัดเจน ระบบจะระบุ "ที่มาของยอดรับเข้า" ไว้ในวงเล็บเสมอ:</strong></p>
+      <ul>
+        <li><strong>(รับจาก: ยอดสั่งผลิต):</strong> หมายถึงขั้นตอนนี้เป็นขั้นตอนแรกสุดของใบสั่งนั้น ตัวเลขตัวตั้งจึงดึงมาจากยอดที่ลูกค้าสั่งผลิตรวม <code>(Order Quantity)</code></li>
+        <li><strong>(รับจาก: ชื่อแผนกก่อนหน้า):</strong> หมายถึงขั้นตอนนี้เป็นขั้นตอนที่ 2 เป็นต้นไป ตัวเลขตัวตั้งจะถูกส่งต่อมาจากยอดที่แผนกก่อนหน้า <strong>"ผลิตเสร็จแล้ว"</strong></li>
+      </ul>
+
+      <h2>📊 3. การอ่านกราฟและการ์ดสรุปผล</h2>
+      <ul>
+        <li><strong>การ์ด "จุดคอขวด":</strong> ระบบจะค้นหาและดึงชื่อแผนกที่มีงานค้างสะสม "รวมกันทุกออเดอร์แล้วเยอะที่สุด" ขึ้นมาโชว์ เพื่อให้หัวหน้างานรู้ว่าควรระดมคนไปช่วยที่จุดไหน</li>
+        <li><strong>กราฟแท่ง (Chart):</strong> เรียงลำดับจากแผนกที่มีงานค้างมากไปน้อย แท่งกราฟที่เป็นคอขวดอันดับ 1 จะถูกเน้นด้วย <strong>สีชมพู</strong> เสมอ ตัวเลขบนแท่งกราฟคือยอดชิ้นงานที่ค้างอยู่</li>
+      </ul>
+
+      <h2>🛠️ 4. การจัดการใบสั่งงาน (ปุ่ม ปิดใบสั่ง)</h2>
+      <p>ในกรณีที่งานผลิตเสร็จสิ้นไปแล้ว แต่ยอดในระบบอาจมีการคีย์ผิดพลาด หรือมีเศษงานที่ไม่ได้ทำต่อ ทำให้ระบบยังโชว์ยอดค้างอยู่ (ขยะกวนสายตา)</p>
+      <ul>
+        <li>ผู้ดูแลสามารถกดปุ่ม <strong style="color: var(--accent-green);"><i class="fa-solid fa-check-double"></i> ปิดใบสั่ง</strong> ที่ด้านขวาสุดของตาราง</li>
+        <li>เมื่อกดยืนยัน ระบบจะทำการอัปเดตสถานะ <code>is_closed = true</code> ในฐานข้อมูล</li>
+        <li>ใบสั่งงานนั้นจะ <strong>หายไปจากกระดาน WIP นี้ทันที</strong> และจะไม่ถูกนำมาคำนวณยอดค้างอีก เพื่อให้กระดานสะท้อนสถานการณ์งานในมือที่เป็นปัจจุบันที่สุด</li>
+      </ul>
+      
+    </div>
+  </div>
+</div>
+<!-- ========================================================================= -->
+
 <script>
   const SUPABASE_URL = "https://siiiifesdjuunwmwozfb.supabase.co/rest/v1";
   const SUPABASE_KEY = "sb_publishable_ohToE8Z_Fzo87uBtzdPDIg_cqHCi3HT";
   const headers = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
 
   let myChart = null;
+
+  // ฟังก์ชันเปิด-ปิดคู่มือ
+  function openManual() {
+    document.getElementById('manualModal').style.display = 'flex';
+  }
+  function closeManual() {
+    document.getElementById('manualModal').style.display = 'none';
+  }
+  function closeManualOnOutside(event) {
+    if (event.target === document.getElementById('manualModal')) {
+      closeManual();
+    }
+  }
 
   window.onload = function() {
     analyzeRoutingAndWIP();
@@ -332,7 +427,6 @@
 
         step.orderDetails.sort((a, b) => b.wip - a.wip); 
         step.orderDetails.forEach(o => {
-          // อัปเดตปรับให้แสดงเป็นบรรทัดเดียวและฟอนต์ขนาด 14px เท่ากัน
           tableHtml += `
             <tr class="child-row">
               <td style="padding-left: 30px; font-size: 14px;">
