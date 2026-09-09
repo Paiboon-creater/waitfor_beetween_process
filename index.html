@@ -512,9 +512,9 @@
               <td class="text-right" style="color: var(--accent-blue); font-size: 14px; font-weight: bold;">${o.produced.toLocaleString()}</td>
               <td class="text-right" style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">${o.wip.toLocaleString()}</td>
               <td class="text-center no-print" onclick="window.event.stopPropagation();">
-                <!-- Checkbox สำหรับติ๊กปิดใบสั่ง -->
+                <!-- Checkbox สำหรับติ๊กปิดใบสั่ง แก้ไข Syntax Error แล้ว -->
                 <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-pink); font-weight: bold; font-size: 13px;">
-                  <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="closeOrderWithCheckbox(this, ${o.id_order}, '${o.order_no}')">
+                  <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="closeOrderWithCheckbox(this, '${o.id_order}', '${o.order_no}')">
                   ปิดใบสั่ง
                 </label>
               </td>
