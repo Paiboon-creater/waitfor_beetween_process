@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JAGUAR // WIP & BACKLOG</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* THEME: MIDNIGHT PURPLE & BLUE */
+    :root {
+      --bg-main: #0B0E14;        
+      --panel-bg: #151A26;       
+      --border-dark: #2A3245;    
+      --text-main: #F8FAFC;      
+      --text-muted: #64748B;     
+      
+      --accent-purple: #8B5CF6;  
+      --accent-blue: #3B82F6;    
+      --accent-cyan: #06B6D4;    
+      --accent-pink: #EC4899;
+      --accent-green: #10B981;
+
+      --row-hover: #1E2536;      
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace, 'Sarabun', sans-serif;
+      background-color: var(--bg-main); color: var(--text-main);
+      margin: 0; padding: 20px; font-size: 14px;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    .app-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      border-bottom: 2px solid var(--border-dark); padding-bottom: 15px; margin-bottom: 20px;
+    }
+    .app-title { font-size: 24px; font-weight: bold; color: var(--accent-blue); margin: 0; letter-spacing: 1px; }
+    .app-subtitle { color: var(--text-muted); font-size: 13px; margin-top: 5px; }
+
+    .btn {
+      background: transparent; border: 1px solid; 
+      padding: 8px 15px; border-radius: 6px; font-size: 14px;
+      font-family: inherit; font-weight: bold; cursor: pointer; transition: 0.2s;
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    }
+    .btn-home { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+    .btn-home:hover { background: var(--accent-cyan); color: #000; box-shadow: 0 0 10px rgba(6, 182, 212, 0.4); }
+    .btn-print { color: #f8fafc; border-color: #f8fafc; }
+    .btn-print:hover { background: #f8fafc; color: #000; }
+
+    /* DASHBOARD CARDS */
+    .dashboard-summary {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;
+    }
+    .summary-card {
+      background: linear-gradient(135deg, var(--panel-bg), #1a2233);
+      border: 1px solid var(--border-dark); border-radius: 8px; padding: 20px;
+      display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .summary-icon {
+      font-size: 40px; color: var(--accent-purple);
+      background: rgba(139, 92, 246, 0.1); width: 80px; height: 80px;
+      display: flex; justify-content: center; align-items: center; border-radius: 50%;
+    }
+    .summary-info h3 { margin: 0; font-size: 14px; color: var(--text-muted); font-weight: normal; }
+    .summary-info .value { font-size: 32px; font-weight: bold; color: var(--text-main); margin: 5px 0; }
+    .summary-info .highlight { color: var(--accent-pink); font-size: 18px;}
+
+    .card { background: var(--panel-bg); border: 1px solid var(--border-dark); padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px;}
+    .card-title { color: var(--accent-cyan); margin-top: 0; margin-bottom: 20px; font-size: 18px; border-bottom: 1px dashed var(--border-dark); padding-bottom: 10px;}
+    
+    .chart-container { position: relative; height: 350px; width: 100%; }
+
+    /* TABLE STYLES */
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background-color: #0f131c; color: var(--accent-blue); border-bottom: 2px solid var(--border-dark); padding: 12px; font-weight: bold; }
+    td { padding: 12px; border-bottom: 1px solid var(--border-dark); font-size: 14px; }
+    
+    .group-header { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-cyan); font-weight: bold; cursor: pointer;}
+    .group-header:hover { background-color: rgba(59, 130, 246, 0.2); }
+    .group-header td { border-top: 2px solid var(--accent-blue); padding: 15px 12px; font-size: 16px;}
+    
+    .child-row { background-color: var(--panel-bg); transition: 0.2s; }
+    .child-row:hover { background-color: var(--row-hover); }
+
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+
+    /* ALERT BADGE */
+    .badge-wip { background: var(--accent-pink); color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;}
+    
+    /* CLOSE BUTTON */
+    .btn-close {
+      background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green);
+      padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: 0.2s; font-family: inherit; font-weight: bold;
+    }
+    .btn-close:hover {
+      background: var(--accent-green); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    @media print {
+      body { background-color: #fff; color: #000; }
+      .no-print, .chart-container, .btn-close { display: none !important; }
+      .card, .summary-card { border: none; box-shadow: none; padding: 0; background: transparent;}
+      table { margin-top: 20px; }
+      th { background-color: #f2f2f2 !important; color: #000; border: 1px solid #000; }
+      td { border: 1px solid #999; color: #000 !important; }
+      .group-header td { background-color: #e6e6e6 !important; border-top: 2px solid #000; color: #000 !important;}
+      .badge-wip { background: #000; color: #fff; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div class="app-header">
+    <div>
+      <h1 class="app-title"><i class="fa-solid fa-layer-group"></i> WIP & BACKLOG REPORT</h1>
+      <div class="app-subtitle">กระดานสรุปยอดงานค้างหน้าสเตชัน (แยกตามขั้นตอนการผลิต)</div>
+    </div>
+    <div class="no-print" style="display:flex; gap:10px;">
+      <a href="index.html" class="btn btn-home" title="กลับหน้าแรก"><i class="fa-solid fa-house"></i> HOME</a>
+      <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> PRINT</button>
+    </div>
+  </div>
+
+  <div id="loadingMsg" style="text-align: center; color: var(--accent-cyan); padding: 40px; font-size: 18px;">
+    <i class="fa-solid fa-spinner fa-spin"></i> กำลังวิเคราะห์ข้อมูลการไหลของงาน (Routing)...
+  </div>
+
+  <div id="dashboardContent" style="display: none;">
+    <!-- ส่วนแสดงตัวเลขสรุป -->
+    <div class="dashboard-summary">
+      <div class="summary-card">
+        <div class="summary-icon" style="color: var(--accent-cyan); background: rgba(6, 182, 212, 0.1);"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <div class="summary-info">
+          <h3>ยอดงานกองรอทั้งหมดในโรงงาน (ชิ้น)</h3>
+          <div class="value" id="totalWipVal">0</div>
+          <div style="color: var(--text-muted); font-size: 12px;">รวมจากทุกขั้นตอน</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon" style="color: var(--accent-pink); background: rgba(236, 72, 153, 0.1);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="summary-info">
+          <h3>จุดคอขวด (งานล้นที่สุด)</h3>
+          <div class="value highlight" id="bottleneckStation">-</div>
+          <div style="color: var(--text-muted); font-size: 12px;">ยอดค้าง: <span id="bottleneckVal" style="color:#fff; font-weight:bold;">0</span> ชิ้น</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- กราฟคอขวด -->
+    <div class="card no-print">
+      <h2 class="card-title"><i class="fa-solid fa-chart-column"></i> กราฟปริมาณงานค้างสะสมรายขั้นตอน (Bottleneck Analysis)</h2>
+      <div class="chart-container">
+        <canvas id="wipChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ตารางแจกแจงรายละเอียด -->
+    <div class="card">
+      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (แยกรายออเดอร์)</h2>
+      <table id="wipTable">
+        <thead>
+          <tr>
+            <th width="35%">เลขที่ใบสั่งงาน / รหัสชิ้นงาน</th>
+            <th width="20%" class="text-right">ยอดรับจากขั้นก่อนหน้า</th>
+            <th width="15%" class="text-right">ยอดทำเสร็จ (ชิ้น)</th>
+            <th width="15%" class="text-right">กองรอหน้าสเตชัน (WIP)</th>
+            <th width="15%" class="text-center no-print">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- ข้อมูลตารางจะมาแสดงตรงนี้ -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://siiiifesdjuunwmwozfb.supabase.co/rest/v1";
+  const SUPABASE_KEY = "sb_publishable_ohToE8Z_Fzo87uBtzdPDIg_cqHCi3HT";
+  const headers = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
+
+  let myChart = null;
+
+  window.onload = function() {
+    analyzeRoutingAndWIP();
+  };
+
+  async function analyzeRoutingAndWIP() {
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('dashboardContent').style.display = 'none';
+
+    try {
+      const [ordersRes, orderStepsRes, prodStepsRes, targetsRes, prodRes, workItemsRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/orders?select=id_order,order_no,quantity,id_work,is_closed&is_closed=eq.false`, { headers }), 
+        fetch(`${SUPABASE_URL}/order_steps?select=id_order,id_step,start_date,id_001`, { headers }),
+        fetch(`${SUPABASE_URL}/production_steps?select=id_step,step_name`, { headers }),
+        fetch(`${SUPABASE_URL}/targets?select=id_target,id_step`, { headers }),
+        fetch(`${SUPABASE_URL}/daily_production?select=id_order,id_target,produced_amount`, { headers }),
+        fetch(`${SUPABASE_URL}/work_items?select=id_work,work_code`, { headers })
+      ]);
+
+      if (!ordersRes.ok) throw new Error("โหลดข้อมูลล้มเหลว");
+
+      const activeOrders = await ordersRes.json();
+      const orderSteps = await orderStepsRes.json();
+      const stepsMaster = await prodStepsRes.json();
+      const targets = await targetsRes.json();
+      const productions = await prodRes.json();
+      const workItems = await workItemsRes.json();
+
+      const workMap = {};
+      workItems.forEach(w => workMap[w.id_work] = w.work_code);
+
+      const targetToStep = {};
+      targets.forEach(t => targetToStep[t.id_target] = t.id_step);
+
+      const prodMap = {};
+      productions.forEach(p => {
+        let stepId = targetToStep[p.id_target];
+        if (!stepId) return;
+        if (!prodMap[p.id_order]) prodMap[p.id_order] = {};
+        if (!prodMap[p.id_order][stepId]) prodMap[p.id_order][stepId] = 0;
+        prodMap[p.id_order][stepId] += parseInt(p.produced_amount || 0);
+      });
+
+      const wipByStep = {};
+      stepsMaster.forEach(s => {
+        wipByStep[s.id_step] = { name: s.step_name, totalWip: 0, orderDetails: [] };
+      });
+
+      activeOrders.forEach(order => {
+        let qty = parseInt(order.quantity || 0);
+        let workCode = workMap[order.id_work] || 'ไม่มีระบุรหัสชิ้นงาน';
+        
+        let routing = orderSteps.filter(os => String(os.id_order) === String(order.id_order));
+        
+        routing.sort((a, b) => {
+            let dateA = a.start_date ? new Date(a.start_date).getTime() : 9999999999999;
+            let dateB = b.start_date ? new Date(b.start_date).getTime() : 9999999999999;
+            
+            if (dateA !== dateB) {
+                return dateA - dateB;
+            } else {
+                let seqA = parseFloat(a.id_001) || 999;
+                let seqB = parseFloat(b.id_001) || 999;
+                return seqA - seqB;
+            }
+        });
+
+        let currentInputAmount = qty;
+        let previousStepName = "ยอดสั่งผลิต";
+
+        routing.forEach(r => {
+          let stepId = r.id_step;
+          let producedAmount = (prodMap[order.id_order] && prodMap[order.id_order][stepId]) ? prodMap[order.id_order][stepId] : 0;
+          
+          let wip = currentInputAmount - producedAmount;
+          if (wip < 0) wip = 0;
+
+          if (currentInputAmount > 0 && wip > 0 && wipByStep[stepId]) {
+            wipByStep[stepId].totalWip += wip;
+            wipByStep[stepId].orderDetails.push({
+              id_order: order.id_order,
+              order_no: order.order_no,
+              work_code: workCode,
+              input: currentInputAmount,
+              source_name: previousStepName,
+              produced: producedAmount,
+              wip: wip
+            });
+          }
+          
+          currentInputAmount = producedAmount; 
+          let stepInfo = stepsMaster.find(s => String(s.id_step) === String(stepId));
+          previousStepName = stepInfo ? stepInfo.step_name : "ขั้นก่อนหน้า";
+        });
+      });
+
+      renderDashboard(wipByStep);
+
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'block';
+    }
+  }
+
+  function renderDashboard(wipByStep) {
+    let totalFactoryWip = 0;
+    let maxWip = -1;
+    let bottleneckName = "-";
+    
+    let chartLabels = [];
+    let chartData = [];
+    let tableHtml = "";
+
+    let stepArray = Object.values(wipByStep).filter(s => s.totalWip > 0);
+    
+    stepArray.sort((a, b) => b.totalWip - a.totalWip);
+
+    if (stepArray.length === 0) {
+      tableHtml = `<tr><td colspan="5" class="text-center" style="padding: 40px; color: var(--accent-cyan); font-size: 14px;">ยอดเยี่ยม! ขณะนี้ไม่มีงานกองรอหน้าสเตชันเลย (เคลียร์งานหมดแล้ว)</td></tr>`;
+    } else {
+      stepArray.forEach(step => {
+        totalFactoryWip += step.totalWip;
+        
+        if (step.totalWip > maxWip) {
+          maxWip = step.totalWip;
+          bottleneckName = step.name;
+        }
+
+        chartLabels.push(step.name);
+        chartData.push(step.totalWip);
+
+        tableHtml += `
+          <tr class="group-header">
+            <td colspan="3"><i class="fa-solid fa-door-open" style="margin-right:8px;"></i> จุดทำงาน: <b>${step.name}</b></td>
+            <td class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
+            <td class="no-print"></td>
+          </tr>
+        `;
+
+        step.orderDetails.sort((a, b) => b.wip - a.wip); 
+        step.orderDetails.forEach(o => {
+          // อัปเดตปรับให้แสดงเป็นบรรทัดเดียวและฟอนต์ขนาด 14px เท่ากัน
+          tableHtml += `
+            <tr class="child-row">
+              <td style="padding-left: 30px; font-size: 14px;">
+                <span style="color: #d1dbe8; font-weight: bold;">${o.order_no}</span>
+                <span style="color: var(--accent-purple); margin-left: 10px;">[ ${o.work_code} ]</span>
+              </td>
+              <td class="text-right" style="font-size: 14px;">
+                <span style="color: #d1dbe8;">${o.input.toLocaleString()}</span>
+                <span style="color: var(--text-muted); margin-left: 8px;">(รับจาก: ${o.source_name})</span>
+              </td>
+              <td class="text-right" style="color: var(--accent-blue); font-size: 14px; font-weight: bold;">${o.produced.toLocaleString()}</td>
+              <td class="text-right" style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">${o.wip.toLocaleString()}</td>
+              <td class="text-center no-print">
+                <button class="btn-close" onclick="closeOrder(${o.id_order}, '${o.order_no}')">
+                  <i class="fa-solid fa-check-double"></i> ปิดใบสั่ง
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    document.getElementById('totalWipVal').innerText = totalFactoryWip.toLocaleString();
+    if(maxWip > 0) {
+      document.getElementById('bottleneckStation').innerText = bottleneckName;
+      document.getElementById('bottleneckVal').innerText = maxWip.toLocaleString();
+    } else {
+      document.getElementById('bottleneckStation').innerText = "ไม่มีงานค้าง";
+    }
+
+    document.getElementById('tableBody').innerHTML = tableHtml;
+
+    renderChart(chartLabels, chartData);
+  }
+
+  function renderChart(labels, dataPoints) {
+    const ctx = document.getElementById('wipChart').getContext('2d');
+    if (myChart) myChart.destroy();
+    
+    if(labels.length === 0) return;
+
+    const bgColors = dataPoints.map((val, index) => {
+      return index === 0 ? 'rgba(236, 72, 153, 0.8)' : 'rgba(59, 130, 246, 0.7)';
+    });
+
+    const topLabelsPlugin = {
+      id: 'topLabels',
+      afterDatasetsDraw(chart, args, options) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, i) => {
+          const meta = chart.getDatasetMeta(i);
+          meta.data.forEach((bar, index) => {
+            const data = dataset.data[index];
+            if (data > 0) {
+              ctx.save();
+              ctx.fillStyle = '#F8FAFC'; 
+              ctx.font = 'bold 14px "Sarabun", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(data.toLocaleString(), bar.x, bar.y - 5);
+              ctx.restore();
+            }
+          });
+        });
+      }
+    };
+
+    myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'ปริมาณงานกองรอ (WIP)',
+          data: dataPoints,
+          backgroundColor: bgColors,
+          borderRadius: 6
+        }]
+      },
+      plugins: [topLabelsPlugin], 
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 30 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { titleFont: { family: 'Sarabun' }, bodyFont: { family: 'Sarabun' } }
+        },
+        scales: {
+          x: { ticks: { color: '#d1dbe8', font: { family: 'Sarabun' } }, grid: { color: '#2A3245' } },
+          y: { 
+            ticks: { color: '#94A3B8', font: { family: 'Sarabun' } }, 
+            grid: { color: '#2A3245' }, 
+            beginAtZero: true,
+            grace: '10%' 
+          }
+        }
+      }
+    });
+  }
+
+  async function closeOrder(idOrder, orderNo) {
+    const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
+    
+    if (confirmClose) {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/orders?id_order=eq.${idOrder}`, {
+          method: 'PATCH',
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ is_closed: true })
+        });
+
+        if (!response.ok) {
+          throw new Error("อัปเดตข้อมูลในระบบล้มเหลว");
+        }
+
+        alert(`ปิดใบสั่งงาน ${orderNo} เรียบร้อยแล้ว!`);
+        analyzeRoutingAndWIP();
+
+      } catch (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
