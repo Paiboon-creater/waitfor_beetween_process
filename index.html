@@ -83,26 +83,18 @@
     th { background-color: #0f131c; color: var(--accent-blue); border-bottom: 2px solid var(--border-dark); padding: 12px; font-weight: bold; }
     td { padding: 12px; border-bottom: 1px solid var(--border-dark); font-size: 14px; }
     
-    .group-header { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-cyan); font-weight: bold; cursor: pointer; transition: 0.2s;}
-    .group-header:hover { background-color: rgba(59, 130, 246, 0.2); }
-    .group-header td { border-top: 2px solid var(--accent-blue); padding: 15px 12px; font-size: 16px;}
+    .group-header { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-cyan); font-weight: bold; }
+    .group-header td { border-top: 2px solid var(--accent-blue); padding: 12px; font-size: 16px;}
     
-    /* TOGGLE ICON STYLES */
-    .toggle-icon { transition: transform 0.3s ease; margin-right: 10px; color: var(--accent-cyan); font-size: 14px; }
-    .group-header.active .toggle-icon { transform: rotate(180deg); color: var(--accent-pink); }
-    
-    /* HIDE CHILD ROWS BY DEFAULT */
-    .child-row { background-color: var(--panel-bg); transition: 0.2s; display: none; }
-    .child-row.expanded { display: table-row; }
+    .child-row { background-color: var(--panel-bg); transition: 0.2s; }
     .child-row:hover { background-color: var(--row-hover); }
 
     .text-right { text-align: right; }
     .text-center { text-align: center; }
 
-    /* ALERT BADGE */
     .badge-wip { background: var(--accent-pink); color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px;}
     
-    /* MODAL MANUAL STYLES */
+    /* MODAL STYLES */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
@@ -127,15 +119,13 @@
 
     @media print {
       body { background-color: #fff; color: #000; }
-      .no-print, .chart-container, .modal-overlay, .toggle-icon, .toggle-hint { display: none !important; }
+      .no-print, .chart-container, .modal-overlay { display: none !important; }
       .card, .summary-card { border: none; box-shadow: none; padding: 0; background: transparent;}
       table { margin-top: 20px; }
       th { background-color: #f2f2f2 !important; color: #000; border: 1px solid #000; }
       td { border: 1px solid #999; color: #000 !important; }
       .group-header td { background-color: #e6e6e6 !important; border-top: 2px solid #000; color: #000 !important;}
       .badge-wip { background: #000; color: #fff; }
-      /* บังคับโชว์ทุกบรรทัดเวลาปริ้นต์ */
-      .child-row { display: table-row !important; }
     }
   </style>
 </head>
@@ -146,9 +136,12 @@
   <div class="app-header">
     <div>
       <h1 class="app-title"><i class="fa-solid fa-layer-group"></i> WIP & BACKLOG REPORT</h1>
-      <div class="app-subtitle">กระดานสรุปยอดงานค้างหน้าสเตชัน (แยกตามขั้นตอนการผลิต)</div>
+      <div class="app-subtitle">กระดานสรุปยอดงานค้างหน้าสเตชัน (แสดงรายการทั้งหมดต่อเนื่อง)</div>
     </div>
-    <div class="no-print" style="display:flex; gap:10px;">
+    <div class="no-print" style="display:flex; gap:10px; flex-wrap: wrap;">
+      <button class="btn" style="color: var(--accent-cyan); border-color: var(--accent-cyan);" onclick="openSummaryReport()" title="สรุปรายงานสำหรับผู้บริหาร">
+        <i class="fa-solid fa-file-waveform"></i> สรุปรายงาน
+      </button>
       <a href="https://paiboon-creater.github.io/Data_Information_Jaguar_productions/" class="btn btn-home" title="กลับหน้าแรก"><i class="fa-solid fa-house"></i> HOME</a>
       <button class="btn btn-manual" onclick="openManual()" title="คู่มือการใช้งาน"><i class="fa-solid fa-book"></i> MANUAL</button>
       <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> PRINT</button>
@@ -187,7 +180,7 @@
     </div>
 
     <div class="card">
-      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (คลิกที่ชื่อแผนกเพื่อขยายดูรายละเอียด)</h2>
+      <h2 class="card-title"><i class="fa-solid fa-table"></i> รายละเอียดงานในมือ (แสดงรายการทั้งหมดต่อเนื่อง)</h2>
       <table id="wipTable">
         <thead>
           <tr>
@@ -199,12 +192,52 @@
           </tr>
         </thead>
         <tbody id="tableBody">
-          <!-- ข้อมูลตารางจะมาแสดงตรงนี้ -->
+          <!-- ข้อมูลตารางแสดงผลทั้งหมดแบบเปิดออก -->
         </tbody>
       </table>
     </div>
   </div>
 
+</div>
+
+<!-- ================= หน้าต่างสรุปรายงานประจำวัน (Modal) ================= -->
+<div class="modal-overlay no-print" id="summaryReportModal" onclick="closeSummaryModalOnOutside(event)">
+  <div class="modal-content" style="max-width: 700px;">
+    <button class="modal-close" onclick="closeSummaryReport()" title="ปิดหน้าต่าง">&times;</button>
+    <div class="manual-body">
+      <div style="display: flex; align-items: center; border-bottom: 2px solid var(--border-dark); padding-bottom: 15px; margin-bottom: 20px;">
+        <h2 style="margin:0; border:none; padding:0; color:var(--accent-cyan); font-size: 20px;">
+          <i class="fa-solid fa-chart-pie"></i> รายงานสรุปสถานะการผลิตประจำวัน (Executive Summary)
+        </h2>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+        ข้อมูลสรุปสถานะงานค้างและจุดวิกฤตของโรงงาน เพื่อใช้ประกอบการประชุมและติดตามงานเร่งด่วน
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); padding: 15px; border-radius: 6px;">
+          <div style="font-size: 13px; color: var(--text-muted);">ยอดงานกองรอรวมในระบบ</div>
+          <div id="modalTotalWip" style="font-size: 24px; font-weight: bold; color: var(--accent-cyan); margin-top: 5px;">0 ชิ้น</div>
+        </div>
+        <div style="background: rgba(236, 72, 153, 0.1); border: 1px solid var(--accent-pink); padding: 15px; border-radius: 6px;">
+          <div style="font-size: 13px; color: var(--text-muted);">จุดคอขวดสูงสุด (Bottleneck)</div>
+          <div id="modalBottleneck" style="font-size: 18px; font-weight: bold; color: var(--accent-pink); margin-top: 5px;">-</div>
+        </div>
+      </div>
+
+      <h3 style="color: var(--text-main); font-size: 15px; margin-bottom: 10px;"><i class="fa-solid fa-list-check"></i> สรุปภาระงานแยกตามแผนก:</h3>
+      <div id="modalDeptList" style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; font-size: 13px;">
+        <!-- รายละเอียดแผนกจะถูกดึงมาใส่ตรงนี้อัตโนมัติ -->
+      </div>
+
+      <div style="text-align: right; margin-top: 20px;">
+        <button class="btn" style="background: var(--accent-blue); color: #fff; border: none;" onclick="window.print()">
+          <i class="fa-solid fa-print"></i> พิมพ์หน้านี้
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ================= หน้าต่างคู่มือการอ่านฟอร์ม ================= -->
@@ -270,20 +303,36 @@
     if (event.target === document.getElementById('manualModal')) closeManual();
   }
 
-  // ฟังก์ชันสลับการซ่อน/แสดงรายละเอียดตาราง
-  function toggleGroup(groupId) {
-    const header = document.getElementById('header-' + groupId);
-    header.classList.toggle('active');
+  function openSummaryReport() {
+    document.getElementById('modalTotalWip').innerText = document.getElementById('totalWipVal').innerText + " ชิ้น";
+    document.getElementById('modalBottleneck').innerText = document.getElementById('bottleneckStation').innerText + " (" + document.getElementById('bottleneckVal').innerText + " ชิ้น)";
     
-    const rows = document.querySelectorAll('.' + groupId);
-    rows.forEach(row => {
-      row.classList.toggle('expanded');
-    });
+    let deptListHtml = "";
+    const groupHeaders = document.querySelectorAll('.group-header');
+    
+    if (groupHeaders.length === 0) {
+      deptListHtml = "<div style='padding: 10px; text-align: center; color: var(--text-muted);'>ไม่มีข้อมูลงานค้างในระบบ</div>";
+    } else {
+      groupHeaders.forEach(header => {
+        let text = header.innerText.trim();
+        deptListHtml += `<div style="padding: 8px; border-bottom: 1px dashed var(--border-dark); display: flex; justify-content: space-between;">${text}</div>`;
+      });
+    }
+    
+    document.getElementById('modalDeptList').innerHTML = deptListHtml;
+    document.getElementById('summaryReportModal').style.display = 'flex';
   }
 
-  // -------------------------------------------------------------
-  // ฟังก์ชันจัดกลุ่มชื่อแผนกที่ทำงานแทนกันได้ (แบบค้นหาคำ)
-  // -------------------------------------------------------------
+  function closeSummaryReport() {
+    document.getElementById('summaryReportModal').style.display = 'none';
+  }
+
+  function closeSummaryModalOnOutside(event) {
+    if (event.target === document.getElementById('summaryReportModal')) {
+      closeSummaryReport();
+    }
+  }
+
   function getGroupName(stepName) {
     if (!stepName) return "ไม่ระบุ";
     const name = stepName.trim();
@@ -401,12 +450,10 @@
         groupedRouting.forEach(r => {
           let gName = r.groupName;
           
-          // ตรวจสอบเงื่อนไขการ Custom Routing ตามที่กำหนด
           if (gName.includes("ตัดเหรียญออโต")) {
               currentInputAmount = qty;
               previousStepName = "ยอดสั่งผลิต";
           } else if (gName.includes("ขึ้นรูปออโต")) {
-              // รับงานจาก ตัดเหรียญออโต (ดึงข้อมูลว่าออเดอร์นี้ทำตัดเหรียญออโตไปเท่าไหร่)
               let producedAutoCoin = 0;
               if (prodGroupMap[order.id_order]) {
                   for (let key in prodGroupMap[order.id_order]) {
@@ -469,11 +516,7 @@
     if (stepArray.length === 0) {
       tableHtml = `<tr><td colspan="5" class="text-center" style="padding: 40px; color: var(--accent-cyan); font-size: 14px;">ยอดเยี่ยม! ขณะนี้ไม่มีงานกองรอหน้าสเตชันเลย (เคลียร์งานหมดแล้ว)</td></tr>`;
     } else {
-      let groupIndex = 0; 
       stepArray.forEach(step => {
-        groupIndex++;
-        let groupId = "group-" + groupIndex;
-        
         totalFactoryWip += step.totalWip;
         
         if (step.totalWip > maxWip) {
@@ -485,22 +528,18 @@
         chartData.push(step.totalWip);
 
         tableHtml += `
-          <tr class="group-header" id="header-${groupId}" onclick="toggleGroup('${groupId}')">
+          <tr class="group-header">
             <td colspan="2">
-              <i class="fa-solid fa-chevron-down toggle-icon"></i>
               <i class="fa-solid fa-door-open" style="margin-right:8px;"></i> จุดทำงาน: <b>${step.name}</b>
             </td>
-            <td colspan="2" class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
-            <td class="text-center no-print">
-              <span class="toggle-hint" style="font-size: 12px; color: var(--text-muted); font-weight: normal;"><i class="fa-solid fa-hand-pointer"></i> คลิกดู</span>
-            </td>
+            <td colspan="3" class="text-right">รวมงานกองรอ: <span class="badge-wip">${step.totalWip.toLocaleString()} ชิ้น</span></td>
           </tr>
         `;
 
         step.orderDetails.sort((a, b) => b.wip - a.wip); 
         step.orderDetails.forEach(o => {
           tableHtml += `
-            <tr class="child-row ${groupId}">
+            <tr class="child-row">
               <td style="padding-left: 30px; font-size: 14px;">
                 <span style="color: #d1dbe8; font-weight: bold;">${o.order_no}</span>
                 <span style="color: var(--accent-purple); margin-left: 10px;">[ ${o.work_code} ]</span>
@@ -511,8 +550,7 @@
               </td>
               <td class="text-right" style="color: var(--accent-blue); font-size: 14px; font-weight: bold;">${o.produced.toLocaleString()}</td>
               <td class="text-right" style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">${o.wip.toLocaleString()}</td>
-              <td class="text-center no-print" onclick="window.event.stopPropagation();">
-                <!-- Checkbox สำหรับติ๊กปิดใบสั่ง แก้ไข Syntax Error แล้ว -->
+              <td class="text-center no-print">
                 <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-pink); font-weight: bold; font-size: 13px;">
                   <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="closeOrderWithCheckbox(this, '${o.id_order}', '${o.order_no}')">
                   ปิดใบสั่ง
@@ -600,13 +638,12 @@
     });
   }
 
-  // ฟังก์ชันติ๊กถูกผ่าน Checkbox เพื่อซ่อนออเดอร์
   async function closeOrderWithCheckbox(checkbox, idOrder, orderNo) {
     if (checkbox.checked) {
       const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
       
       if (confirmClose) {
-        checkbox.disabled = true; // ล็อคเพื่อกันกดรัวๆ
+        checkbox.disabled = true;
         try {
           const response = await fetch(`${SUPABASE_URL}/orders?id_order=eq.${idOrder}`, {
             method: 'PATCH',
@@ -623,7 +660,6 @@
             throw new Error("อัปเดตข้อมูลในระบบล้มเหลว");
           }
 
-          // รีเฟรชตารางหลังปิดเสร็จ
           analyzeRoutingAndWIP();
 
         } catch (error) {
@@ -632,7 +668,6 @@
           checkbox.disabled = false;
         }
       } else {
-        // หากกดยกเลิกในกล่องข้อความ ให้เอาติ๊กถูกออก
         checkbox.checked = false;
       }
     }
