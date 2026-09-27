@@ -51,6 +51,9 @@
     .btn-manual { color: var(--accent-purple); border-color: var(--accent-purple); }
     .btn-manual:hover { background: var(--accent-purple); color: #fff; box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
 
+    .btn-unhide { color: var(--text-muted); border-color: var(--border-dark); }
+    .btn-unhide:hover { background: var(--border-dark); color: #000; }
+
     .btn-print { color: #1A202C; border-color: #1A202C; }
     .btn-print:hover { background: #1A202C; color: #fff; }
 
@@ -156,6 +159,8 @@
         <i class="fa-solid fa-file-waveform"></i> สรุปรายงาน
       </button>
       <a href="https://paiboon-creater.github.io/Data_Information_Jaguar_productions/" class="btn btn-home" title="กลับหน้าแรก"><i class="fa-solid fa-house"></i> HOME</a>
+      <!-- ปุ่มใหม่สำหรับยกเลิกการซ่อนข้อมูล -->
+      <button class="btn btn-unhide" onclick="clearHiddenOrders()" title="แสดงข้อมูลใบสั่งงานที่ถูกซ่อนไว้ทั้งหมด"><i class="fa-solid fa-eye"></i> เลิกซ่อนทั้งหมด</button>
       <button class="btn btn-manual" onclick="openManual()" title="คู่มือการใช้งาน"><i class="fa-solid fa-book"></i> MANUAL</button>
       <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> PRINT</button>
     </div>
@@ -279,8 +284,8 @@
       <h2>🔍 3. การดูความก้าวหน้าของใบสั่งงาน</h2>
       <p>คุณสามารถคลิกที่ <strong>ตัวหนังสือสีฟ้า (เลขที่ใบสั่งงาน)</strong> ในตาราง เพื่อเปิดดูใบสรุปความก้าวหน้า (Progress Slip) ของงานชิ้นนั้น ว่าผ่านขั้นตอนใดไปแล้วบ้าง เรียงลำดับตามความจริง</p>
 
-      <h2>🛠️ 4. การจัดการใบสั่งงาน (ปุ่ม ปิดใบสั่ง)</h2>
-      <p>ในกรณีที่งานผลิตเสร็จสิ้นไปแล้ว แต่ยอดในระบบอาจมีการคีย์ผิดพลาด ผู้ดูแลสามารถคลิก <strong>ติ๊กช่องสี่เหลี่ยม</strong> (Checkbox) เพื่อปิดใบสั่ง ใบสั่งงานนั้นจะหายไปจากกระดาน WIP ทันที</p>
+      <h2>🛠️ 4. การจัดการใบสั่งงาน (การซ่อนข้อมูล)</h2>
+      <p>ในกรณีที่งานผลิตเสร็จสิ้นไปแล้ว แต่ยอดในระบบอาจมีค้างอยู่ ผู้ดูแลสามารถคลิก <strong>ติ๊กช่องสี่เหลี่ยม</strong> (Checkbox) เพื่อซ่อนใบสั่งงานนั้นจากกระดาน WIP โดยข้อมูลจะถูกจำค่าไว้ในเบราว์เซอร์ หากต้องการให้แสดงกลับมาเหมือนเดิม ให้คลิกที่ปุ่ม "เลิกซ่อนทั้งหมด" ด้านบนขวา</p>
       
     </div>
   </div>
@@ -293,6 +298,34 @@
   const headers = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
 
   let globalDb = {}; 
+
+  // --- ระบบจัดการ Local Storage สำหรับซ่อนข้อมูล ---
+  function getHiddenOrders() {
+    const hidden = localStorage.getItem('jaguarHiddenOrders');
+    return hidden ? JSON.parse(hidden) : [];
+  }
+
+  function hideOrder(orderId) {
+    const hidden = getHiddenOrders();
+    if (!hidden.includes(String(orderId))) {
+      hidden.push(String(orderId));
+      localStorage.setItem('jaguarHiddenOrders', JSON.stringify(hidden));
+    }
+  }
+
+  function clearHiddenOrders() {
+    const hidden = getHiddenOrders();
+    if (hidden.length === 0) {
+      alert("ไม่มีข้อมูลใบสั่งงานที่ถูกซ่อนไว้ในขณะนี้");
+      return;
+    }
+    
+    if (confirm(`คุณต้องการกู้คืนใบสั่งงานที่ถูกซ่อนไว้ทั้งหมดจำนวน ${hidden.length} รายการ ใช่หรือไม่?`)) {
+      localStorage.removeItem('jaguarHiddenOrders');
+      analyzeRoutingAndWIP(); // โหลดข้อมูลมาคำนวณใหม่
+    }
+  }
+  // --------------------------------------------------
 
   function openManual() { document.getElementById('manualModal').style.display = 'flex'; }
   function closeManual() { document.getElementById('manualModal').style.display = 'none'; }
@@ -355,12 +388,16 @@
 
       if (!ordersRes.ok) throw new Error("โหลดข้อมูลล้มเหลว");
 
-      const activeOrders = await ordersRes.json();
+      const activeOrdersRaw = await ordersRes.json();
       const orderSteps = await orderStepsRes.json();
       const stepsMaster = await prodStepsRes.json();
       const targets = await targetsRes.json();
       const productions = await prodRes.json();
       const workItems = await workItemsRes.json();
+
+      // ดึงรายชื่อ ID ที่ถูกซ่อน และกรองข้อมูล Orders
+      const hiddenOrders = getHiddenOrders();
+      const activeOrders = activeOrdersRaw.filter(order => !hiddenOrders.includes(String(order.id_order)));
 
       globalDb = { activeOrders, orderSteps, stepsMaster, targets, productions, workItems };
 
@@ -498,8 +535,9 @@
               <td class="text-right" style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">${o.wip.toLocaleString()}</td>
               <td class="text-center no-print">
                 <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-pink); font-weight: bold; font-size: 13px;">
-                  <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="closeOrderWithCheckbox(this, '${o.id_order}', '${o.order_no}')">
-                  ปิดใบสั่ง
+                  <!-- เปลี่ยนจากการเรียก closeOrderWithCheckbox มาเป็น hideOrderWithCheckbox -->
+                  <input type="checkbox" style="width: 17px; height: 17px; accent-color: var(--accent-pink); cursor: pointer;" onchange="hideOrderWithCheckbox(this, '${o.id_order}', '${o.order_no}')">
+                  ซ่อนข้อมูล
                 </label>
               </td>
             </tr>
@@ -526,7 +564,7 @@
     try {
       let order = globalDb.activeOrders.find(o => String(o.id_order) === String(orderId));
       if (!order) {
-        document.getElementById('ticketContainer').innerHTML = '<div style="text-align:center; color:#ef4444; padding:30px;">ไม่พบข้อมูลออเดอร์ หรือออเดอร์ถูกปิดไปแล้ว</div>';
+        document.getElementById('ticketContainer').innerHTML = '<div style="text-align:center; color:#ef4444; padding:30px;">ไม่พบข้อมูลออเดอร์ หรือออเดอร์ถูกซ่อน/ปิดไปแล้ว</div>';
         return;
       }
 
@@ -634,35 +672,14 @@
     }
   }
 
-  async function closeOrderWithCheckbox(checkbox, idOrder, orderNo) {
+  // --- ฟังก์ชันสำหรับซ่อนข้อมูล (แทนที่การอัปเดต API เดิม) ---
+  function hideOrderWithCheckbox(checkbox, idOrder, orderNo) {
     if (checkbox.checked) {
-      const confirmClose = confirm(`ยืนยันการปิดใบสั่งงาน: ${orderNo} ?\n\nเมื่อปิดแล้ว ยอดงานของออเดอร์นี้จะไม่ถูกนำมาคำนวณกองรอหน้าสเตชันอีก (is_closed = true)`);
+      const confirmHide = confirm(`ยืนยันการซ่อนใบสั่งงาน: ${orderNo} ?\n\nเมื่อซ่อนแล้วข้อมูลจะไม่แสดงบนกระดานนี้แม้จะเปิดโปรแกรมใหม่ (สามารถยกเลิกซ่อนได้ที่ปุ่ม เลิกซ่อนทั้งหมด)`);
       
-      if (confirmClose) {
-        checkbox.disabled = true;
-        try {
-          const response = await fetch(`${SUPABASE_URL}/orders?id_order=eq.${idOrder}`, {
-            method: 'PATCH',
-            headers: {
-              "apikey": SUPABASE_KEY,
-              "Authorization": "Bearer " + SUPABASE_KEY,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ is_closed: true })
-          });
-
-          if (!response.ok) {
-            throw new Error("อัปเดตข้อมูลในระบบล้มเหลว");
-          }
-
-          analyzeRoutingAndWIP(); // โหลดข้อมูลใหม่
-
-        } catch (error) {
-          alert("เกิดข้อผิดพลาด: " + error.message);
-          checkbox.checked = false;
-          checkbox.disabled = false;
-        }
+      if (confirmHide) {
+        hideOrder(idOrder);
+        analyzeRoutingAndWIP(); // โหลดกระดานใหม่เพื่อซ่อนแถวนี้ทันที
       } else {
         checkbox.checked = false;
       }
